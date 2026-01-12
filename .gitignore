@@ -1,0 +1,58 @@
+# Binários
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Arquivos de teste
+*.test
+*.out
+
+# Arquivos temporários do Go
+*.tmp
+tmp/
+
+# Coverage
+/coverage/
+*.coverprofile
+coverage.out
+coverage.html
+
+# Profiling
+*.prof
+cpu.prof
+mem.prof
+
+# Air (hot reload)
+build-errors.log
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Dependências
+vendor/
+
+# Arquivos temporários de execução
+/tmp/geee-*
+
+# Logs
+*.log
+
+# Env files (se houver)
+.env
+.env.local
+.env.*.local
+
+# Cache do Go
+go.work
+go.work.sum

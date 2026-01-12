@@ -1,0 +1,54 @@
+# GEEE - Generic Extraction & Enrichment Engine
+# Default Pipeline Configuration
+
+name: "default-pipeline"
+description: "Default pipeline demonstrating plugin chaining"
+
+# Maximum execution time in seconds (0 = no timeout)
+timeout: 60
+
+# Stop execution on first error (true) or continue with optional plugins (false)
+stop_on_error: true
+
+# List of plugins to execute in order
+plugins:
+  # Example: Transform JSON fields
+  - id: json-transformer
+    config:
+      mappings:
+        - from: "input_field"
+          to: "output_field"
+    optional: false
+    timeout: 10
+
+  # Example: Extract patterns using regex
+  - id: regex-extractor
+    config:
+      patterns:
+        - name: "email"
+          pattern: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+        - name: "phone"
+          pattern: "\\d{3,}"
+    optional: true
+    timeout: 5
+
+  # Example: Fetch data from HTTP endpoint
+  - id: http-fetcher
+    config:
+      url_field: "api_url"
+      response_field: "api_response"
+      timeout: 30
+    depends_on:
+      - json-transformer
+    optional: true
+
+  # Example: Render template with data
+  - id: template-renderer
+    config:
+      template_field: "template"
+      data_field: "data"
+      output_field: "rendered"
+    depends_on:
+      - json-transformer
+    optional: false
+    timeout: 5
