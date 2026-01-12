@@ -1,0 +1,38 @@
+# Example pipeline using all 4 plugins
+# This pipeline demonstrates how to chain multiple plugins together
+
+plugins:
+  # Step 1: Extract email and phone from text
+  - id: regex-extractor
+    config:
+      input_field: "text"
+      patterns:
+        - name: "email"
+          pattern: "[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}"
+        - name: "phone"
+          pattern: "\\d{3,}"
+
+  # Step 2: Transform field names
+  - id: json-transformer
+    config:
+      mappings:
+        - from: "email"
+          to: "user_email"
+        - from: "phone"
+          to: "user_phone"
+
+  # Step 3: Render a template with the extracted data
+  - id: template-renderer
+    config:
+      template_field: "notification_template"
+      data_field: "template_data"
+      output_field: "notification_message"
+
+  # Step 4: Fetch additional data from an API (optional)
+  # Note: This would require a valid URL in the input
+  # - id: http-fetcher
+  #   config:
+  #     url_field: "api_url"
+  #     response_field: "api_response"
+  #     timeout: 30
+  #     method: "GET"

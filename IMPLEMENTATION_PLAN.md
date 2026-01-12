@@ -15,12 +15,12 @@
 | Fase 1: Foundation | ✅ Concluída | 2026-01-12 | 2-3 dias | 1 dia |
 | Fase 2: Plugin System | ✅ Concluída | 2026-01-12 | 3-4 dias | 1 dia |
 | Fase 3: CLI | ✅ Concluída | 2026-01-12 | 2-3 dias | 1 dia |
-| Fase 4: Plugins de Exemplo | 🔜 Pendente | - | 3-4 dias | - |
+| Fase 4: Plugins de Exemplo | ✅ Concluída | 2026-01-12 | 3-4 dias | 1 dia |
 | Fase 5: HTTP Server | 🔜 Pendente | - | 2-3 dias | - |
 | Fase 6: Observabilidade | 🔜 Pendente | - | 2-3 dias | - |
 | Fase 7: Quality Assurance | 🔜 Pendente | - | 2-3 dias | - |
 
-**Progresso Geral**: 3/7 fases concluídas (42.86%)
+**Progresso Geral**: 4/7 fases concluídas (57.14%)
 
 ---
 
@@ -206,8 +206,10 @@ geee plugins list
 
 ---
 
-### Fase 4: Plugins de Exemplo
+### Fase 4: Plugins de Exemplo ✅ CONCLUÍDA
 **Duração estimada**: 3-4 dias
+**Duração real**: 1 dia
+**Data de conclusão**: 2026-01-12
 
 #### Entregáveis
 
@@ -263,11 +265,66 @@ geee plugins list
     output_field: "result"
   ```
 
-#### Criteria de Aceite
-- [ ] Cada plugin tem manifest válido
-- [ ] Cada plugin tem testes unitários
-- [ ] Plugins compilam sem warnings
-- [ ] Documentação em cada plugin
+#### Critérios de Aceite
+- [x] Cada plugin tem manifest válido
+- [x] Cada plugin tem testes unitários
+- [x] Plugins compilam sem warnings
+- [x] Documentação em cada plugin
+
+#### Arquivos Criados
+- `plugins/json-transformer/json_transformer.go` - Plugin de transformação de campos JSON
+- `plugins/json-transformer/json_transformer_test.go` - Testes unitários (81% coverage)
+- `plugins/json-transformer/README.md` - Documentação completa do plugin
+- `plugins/regex-extractor/regex_extractor.go` - Plugin de extração via regex
+- `plugins/regex-extractor/regex_extractor_test.go` - Testes unitários (74.2% coverage)
+- `plugins/regex-extractor/README.md` - Documentação completa do plugin
+- `plugins/http-fetcher/http_fetcher.go` - Plugin de requisições HTTP
+- `plugins/http-fetcher/http_fetcher_test.go` - Testes unitários (74.5% coverage)
+- `plugins/http-fetcher/README.md` - Documentação completa do plugin
+- `plugins/template-renderer/template_renderer.go` - Plugin de renderização de templates
+- `plugins/template-renderer/template_renderer_test.go` - Testes unitários (77.8% coverage)
+- `plugins/template-renderer/README.md` - Documentação completa do plugin
+- `plugins/registry.go` - Registro centralizado de todos os plugins
+- `configs/example-pipeline.yaml` - Pipeline de exemplo usando múltiplos plugins
+- `configs/simple-test-pipeline.yaml` - Pipeline simples para testes
+- `test/fixtures/example-input.json` - Dados de exemplo para testes
+
+#### Funcionalidades Implementadas
+
+**Plugin 1: json-transformer** ✅
+- Mapeamento de campos flexível (from/to)
+- Preservação de campos não mapeados
+- Suporte a múltiplos mapeamentos simultâneos
+- Validação de configuração via JSON Schema
+- Coverage: 81.0%
+
+**Plugin 2: regex-extractor** ✅
+- Múltiplos padrões regex em uma única execução
+- Campo de entrada configurável
+- Compilação e validação de padrões
+- Extração do primeiro match de cada padrão
+- Coverage: 74.2%
+
+**Plugin 3: http-fetcher** ✅
+- Suporte a todos os métodos HTTP padrão
+- Timeout configurável
+- Captura completa de resposta (status, headers, body)
+- Cleanup automático de conexões
+- Context-aware para cancelamento
+- Coverage: 74.5%
+
+**Plugin 4: template-renderer** ✅
+- Suporte completo à sintaxe de templates Go
+- Campos configuráveis (template, data, output)
+- Suporte a estruturas aninhadas
+- Condicionais e loops
+- Validação de sintaxe de template
+- Coverage: 77.8%
+
+#### Integração com CLI
+- Todos os plugins registrados automaticamente via `plugins.RegisterAll()`
+- CLI lista todos os 4 plugins com `geee plugins list`
+- Plugins prontos para uso em pipelines YAML
 
 ---
 

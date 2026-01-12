@@ -1,0 +1,9 @@
+# Simple test pipeline for validation
+# Uses only json-transformer to verify basic functionality
+
+plugins:
+  - id: json-transformer
+    config:
+      mappings:
+        - from: "input_field"
+          to: "output_field"

@@ -1,0 +1,8 @@
+{
+  "text": "Contact us at support@example.com or call 5551234567 for assistance",
+  "notification_template": "Hello! We found your email: {{.user_email}} and phone: {{.user_phone}}",
+  "template_data": {
+    "user_email": "",
+    "user_phone": ""
+  }
+}

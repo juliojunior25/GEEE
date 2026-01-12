@@ -14,6 +14,7 @@ import (
 	"github.com/yourusername/geee/internal/observability"
 	"github.com/yourusername/geee/internal/registry"
 	"github.com/yourusername/geee/pkg/types"
+	"github.com/yourusername/geee/plugins"
 	"gopkg.in/yaml.v3"
 )
 
@@ -30,6 +31,14 @@ func NewCLI(verbose bool) *CLI {
 	logger := observability.NewDefaultLogger(verbose)
 	metrics := observability.NewNoOpMetricsCollector()
 	reg := registry.NewDefaultRegistry()
+
+	// Register all available plugins
+	if err := plugins.RegisterAll(reg); err != nil {
+		logger.Error("Failed to register plugins", map[string]interface{}{
+			"error": err.Error(),
+		})
+	}
+
 	exec := executor.NewDefaultExecutor(reg, logger, metrics)
 
 	return &CLI{
