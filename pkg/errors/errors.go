@@ -78,7 +78,7 @@ func NewSchemaValidationError(message, fieldPath, suggestion, pluginID string) *
 }
 
 // NewExecutionError creates an execution error
-func NewExecutionError(message, suggestion, pluginID string, cause error) *StructuredError {
+func NewExecutionError(pluginID, message, suggestion string) *StructuredError {
 	return &StructuredError{
 		StructuredError: &types.StructuredError{
 			Code:       ErrCodeExecution,
@@ -86,7 +86,29 @@ func NewExecutionError(message, suggestion, pluginID string, cause error) *Struc
 			Suggestion: suggestion,
 			PluginID:   pluginID,
 		},
-		Cause: cause,
+	}
+}
+
+// NewPluginError creates a plugin-specific error
+func NewPluginError(pluginID, message, suggestion string) *StructuredError {
+	return &StructuredError{
+		StructuredError: &types.StructuredError{
+			Code:       ErrCodeExecution,
+			Message:    message,
+			Suggestion: suggestion,
+			PluginID:   pluginID,
+		},
+	}
+}
+
+// NewResourceLimitError creates a resource limit error
+func NewResourceLimitError(resource, current, limit string) *StructuredError {
+	return &StructuredError{
+		StructuredError: &types.StructuredError{
+			Code:       ErrCodeMemoryLimit,
+			Message:    fmt.Sprintf("Resource limit exceeded for %s: current=%s, limit=%s", resource, current, limit),
+			Suggestion: fmt.Sprintf("Increase the %s limit in plugin configuration", resource),
+		},
 	}
 }
 

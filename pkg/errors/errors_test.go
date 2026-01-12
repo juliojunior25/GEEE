@@ -90,14 +90,13 @@ func TestNewSchemaValidationError(t *testing.T) {
 }
 
 func TestNewExecutionError(t *testing.T) {
-	cause := errors.New("root cause")
-	err := NewExecutionError("execution failed", "retry operation", "my-plugin", cause)
+	err := NewExecutionError("my-plugin", "execution failed", "retry operation")
 
 	if err.Code != ErrCodeExecution {
 		t.Errorf("Code = %v, want %v", err.Code, ErrCodeExecution)
 	}
-	if err.Cause != cause {
-		t.Errorf("Cause = %v, want %v", err.Cause, cause)
+	if err.PluginID != "my-plugin" {
+		t.Errorf("PluginID = %v, want %v", err.PluginID, "my-plugin")
 	}
 }
 
