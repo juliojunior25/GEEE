@@ -12,6 +12,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/cors"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/yourusername/geee/internal/core"
 	"github.com/yourusername/geee/pkg/types"
 )
@@ -58,6 +59,7 @@ type Server struct {
 	config   *ServerConfig
 	handlers *Handlers
 	logger   types.Logger
+	metrics  types.MetricsCollector
 	server   *http.Server
 }
 
@@ -67,6 +69,7 @@ func NewServer(
 	registry core.PluginRegistry,
 	executor core.Executor,
 	logger types.Logger,
+	metrics types.MetricsCollector,
 ) *Server {
 	if config == nil {
 		config = DefaultServerConfig()
@@ -78,6 +81,7 @@ func NewServer(
 		config:   config,
 		handlers: handlers,
 		logger:   logger,
+		metrics:  metrics,
 	}
 }
 
@@ -90,6 +94,7 @@ func (s *Server) setupRouter() *chi.Mux {
 	r.Use(middleware.RealIP)
 	r.Use(RecoveryMiddleware(s.logger))
 	r.Use(LoggingMiddleware(s.logger))
+	r.Use(MetricsMiddleware(s.metrics))
 
 	// CORS middleware (if enabled)
 	if s.config.EnableCORS {
@@ -111,6 +116,9 @@ func (s *Server) setupRouter() *chi.Mux {
 	r.Get("/ready", s.handlers.HandleReady)
 	r.Get("/plugins", s.handlers.HandlePlugins)
 	r.Post("/run", s.handlers.HandleRun)
+
+	// Metrics endpoint (Prometheus)
+	r.Handle("/metrics", promhttp.Handler())
 
 	return r
 }

@@ -53,8 +53,8 @@ func (e *DefaultExecutor) Execute(ctx context.Context, plan *core.ExecutionPlan,
 	}
 
 	// Track active executions
-	e.metrics.IncrementCounter("geee_active_executions", map[string]string{})
-	defer e.metrics.IncrementCounter("geee_active_executions", map[string]string{})
+	e.metrics.SetGauge("active_executions", float64(1), map[string]string{})
+	defer e.metrics.SetGauge("active_executions", float64(0), map[string]string{})
 
 	// Build dependency graph
 	dag := NewDAG(plan.Steps)

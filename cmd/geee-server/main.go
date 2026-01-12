@@ -86,8 +86,12 @@ func main() {
 		"plugins": pluginIDs,
 	})
 
-	// Initialize metrics collector
-	metrics := observability.NewNoOpMetricsCollector()
+	// Initialize metrics collector (Prometheus)
+	metrics := observability.NewPrometheusMetricsCollector()
+
+	logger.Info("metrics_initialized", map[string]interface{}{
+		"collector": "prometheus",
+	})
 
 	// Initialize executor
 	exec := executor.NewDefaultExecutor(pluginRegistry, logger, metrics)
@@ -113,7 +117,7 @@ func main() {
 	}
 
 	// Create and start server
-	srv := server.NewServer(serverConfig, pluginRegistry, exec, logger)
+	srv := server.NewServer(serverConfig, pluginRegistry, exec, logger, metrics)
 
 	logger.Info("server_ready", map[string]interface{}{
 		"address": fmt.Sprintf("http://%s:%d", *host, *port),

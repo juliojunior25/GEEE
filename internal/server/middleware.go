@@ -76,3 +76,49 @@ func ContentTypeMiddleware(next http.Handler) http.Handler {
 		next.ServeHTTP(w, r)
 	})
 }
+
+// MetricsMiddleware collects HTTP metrics
+func MetricsMiddleware(metrics types.MetricsCollector) func(next http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+
+			// Wrap response writer to capture status code
+			ww := middleware.NewWrapResponseWriter(w, r.ProtoMajor)
+
+			// Execute next handler
+			next.ServeHTTP(ww, r)
+
+			// Record metrics
+			duration := time.Since(start)
+			status := fmt.Sprintf("%d", ww.Status())
+
+			metrics.RecordDuration("http_request_duration", duration, map[string]string{
+				"method": r.Method,
+				"path":   r.URL.Path,
+				"status": status,
+			})
+
+			metrics.IncrementCounter("http_request_total", map[string]string{
+				"method": r.Method,
+				"path":   r.URL.Path,
+				"status": status,
+			})
+
+			// Record errors for 5xx status codes
+			if ww.Status() >= 500 {
+				metrics.IncrementCounter("http_request_errors", map[string]string{
+					"method":     r.Method,
+					"path":       r.URL.Path,
+					"error_type": "server_error",
+				})
+			} else if ww.Status() >= 400 {
+				metrics.IncrementCounter("http_request_errors", map[string]string{
+					"method":     r.Method,
+					"path":       r.URL.Path,
+					"error_type": "client_error",
+				})
+			}
+		})
+	}
+}
