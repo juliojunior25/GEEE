@@ -1,0 +1,9 @@
+{
+  "input_field": "test value",
+  "api_url": "https://api.example.com/data",
+  "template": "Hello {{.Name}}!",
+  "data": {
+    "Name": "World"
+  },
+  "text": "email: test@example.com, phone: 1234567890"
+}
