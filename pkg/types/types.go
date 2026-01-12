@@ -23,6 +23,11 @@ type StructuredError struct {
 	PluginID string `json:"plugin_id,omitempty"`
 }
 
+// Error implements the error interface for StructuredError
+func (e *StructuredError) Error() string {
+	return e.Message
+}
+
 // PluginResult represents the result of a plugin execution
 type PluginResult struct {
 	// Success indicates if the plugin execution was successful

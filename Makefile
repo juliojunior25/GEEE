@@ -1,4 +1,4 @@
-.PHONY: help dev build test test-race bench lint fmt clean clean-temp plugin-new plugin-test plugin-bench metrics trace profile docker-build docker-run
+.PHONY: help dev build test test-race bench lint fmt clean clean-temp plugin-new plugin-test plugin-bench metrics trace profile docker-build docker-run server server-build server-build-prod server-dev server-run
 
 # Cores para output
 GREEN  := \033[0;32m
@@ -9,8 +9,10 @@ NC     := \033[0m # No Color
 
 # Variáveis
 BINARY_NAME=geee
+SERVER_BINARY_NAME=geee-server
 BUILD_DIR=./bin
 MAIN_PATH=./cmd/geee
+SERVER_MAIN_PATH=./cmd/geee-server
 COVERAGE_DIR=./coverage
 
 # Flags de build
@@ -62,6 +64,37 @@ build-local: ## Build para sistema operacional local
 run: build-local ## Build e executa o binário localmente
 	@echo "$(GREEN)▶️  Running $(BINARY_NAME)...$(NC)"
 	@$(BUILD_DIR)/$(BINARY_NAME)
+
+##@ Server HTTP
+
+server: server-build ## Build e inicia o servidor HTTP
+	@echo "$(GREEN)🚀 Starting server...$(NC)"
+	@$(BUILD_DIR)/$(SERVER_BINARY_NAME)
+
+server-build: ## Build do servidor HTTP
+	@echo "$(GREEN)🔨 Building server binary...$(NC)"
+	@mkdir -p $(BUILD_DIR)
+	@CGO_ENABLED=0 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(SERVER_BINARY_NAME) $(SERVER_MAIN_PATH)
+	@echo "$(GREEN)✅ Server build complete: $(BUILD_DIR)/$(SERVER_BINARY_NAME)$(NC)"
+
+server-build-prod: ## Build de produção do servidor (Linux AMD64)
+	@echo "$(GREEN)🔨 Building production server binary...$(NC)"
+	@mkdir -p $(BUILD_DIR)
+	@CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GOBUILD) $(LDFLAGS) -o $(BUILD_DIR)/$(SERVER_BINARY_NAME) $(SERVER_MAIN_PATH)
+	@echo "$(GREEN)✅ Production server build complete: $(BUILD_DIR)/$(SERVER_BINARY_NAME)$(NC)"
+	@ls -lh $(BUILD_DIR)/$(SERVER_BINARY_NAME)
+
+server-dev: ## Inicia servidor em modo desenvolvimento
+	@echo "$(GREEN)🚀 Starting server in development mode...$(NC)"
+	@$(GORUN) $(SERVER_MAIN_PATH) --verbose
+
+server-run: ## Executa servidor já compilado (use PORT=8080 HOST=0.0.0.0)
+	@echo "$(GREEN)▶️  Running server...$(NC)"
+	@if [ ! -f $(BUILD_DIR)/$(SERVER_BINARY_NAME) ]; then \
+		echo "$(YELLOW)⚠️  Server binary not found. Building first...$(NC)"; \
+		$(MAKE) server-build; \
+	fi
+	@$(BUILD_DIR)/$(SERVER_BINARY_NAME)
 
 ##@ Testes
 

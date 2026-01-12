@@ -16,11 +16,11 @@
 | Fase 2: Plugin System | ✅ Concluída | 2026-01-12 | 3-4 dias | 1 dia |
 | Fase 3: CLI | ✅ Concluída | 2026-01-12 | 2-3 dias | 1 dia |
 | Fase 4: Plugins de Exemplo | ✅ Concluída | 2026-01-12 | 3-4 dias | 1 dia |
-| Fase 5: HTTP Server | 🔜 Pendente | - | 2-3 dias | - |
+| Fase 5: HTTP Server | ✅ Concluída | 2026-01-12 | 2-3 dias | 1 dia |
 | Fase 6: Observabilidade | 🔜 Pendente | - | 2-3 dias | - |
 | Fase 7: Quality Assurance | 🔜 Pendente | - | 2-3 dias | - |
 
-**Progresso Geral**: 4/7 fases concluídas (57.14%)
+**Progresso Geral**: 5/7 fases concluídas (71.43%)
 
 ---
 
@@ -328,23 +328,25 @@ geee plugins list
 
 ---
 
-### Fase 5: HTTP Server (Extensível)
+### Fase 5: HTTP Server ✅ CONCLUÍDA
 **Duração estimada**: 2-3 dias
+**Duração real**: 1 dia
+**Data de conclusão**: 2026-01-12
 
 #### Entregáveis
-- [ ] Entry point: `cmd/geee-server/main.go`
-- [ ] Chi router configurável
-- [ ] Endpoints:
+- [x] Entry point: `cmd/geee-server/main.go`
+- [x] Chi router configurável
+- [x] Endpoints:
   - `POST /run` - Executa pipeline
   - `GET /health` - Health check
   - `GET /plugins` - Lista plugins
   - `GET /ready` - Readiness probe
-- [ ] Middlewares:
+- [x] Middlewares:
   - Logging
   - Recovery
   - CORS (configurável)
-- [ ] Request/Response validation
-- [ ] Configuração via flags/env vars
+- [x] Request/Response validation
+- [x] Configuração via flags/env vars
 
 #### Endpoints
 
@@ -376,11 +378,89 @@ Response:
 }
 ```
 
-#### Criteria de Aceite
-- [ ] Server inicia sem erros
-- [ ] Endpoints respondem corretamente
-- [ ] Health check funciona
-- [ ] Pronto para integração MCP/API
+#### Critérios de Aceite
+- [x] Server inicia sem erros
+- [x] Endpoints respondem corretamente
+- [x] Health check funciona
+- [x] Pronto para integração MCP/API
+
+#### Arquivos Criados
+- `internal/server/types.go` - Tipos de request/response para os endpoints
+- `internal/server/middleware.go` - Middlewares (logging, recovery, CORS)
+- `internal/server/handlers.go` - Handlers dos endpoints HTTP
+- `internal/server/server.go` - Estrutura principal do servidor HTTP
+- `internal/server/handlers_test.go` - Testes unitários dos handlers (13 testes, 100% pass)
+- `internal/server/middleware_test.go` - Testes unitários dos middlewares (4 testes, 100% pass)
+- `cmd/geee-server/main.go` - Entry point do servidor HTTP
+- `pkg/types/types.go` - Adicionado método Error() ao StructuredError
+- `Makefile` - Adicionados comandos: server, server-build, server-build-prod, server-dev, server-run
+
+#### Funcionalidades Implementadas
+
+**Servidor HTTP** ✅
+- Chi router v5 configurável
+- Graceful shutdown com timeout configurável
+- Suporte a variáveis de ambiente e flags
+- Health check com status de plugins
+- Readiness probe
+- Configuração via flags: --port, --host, --cors, --allowed-origins, --verbose
+- Configuração via env vars: GEEE_PORT, GEEE_HOST, GEEE_ENABLE_CORS, GEEE_ALLOWED_ORIGINS, GEEE_VERBOSE
+
+**Middlewares** ✅
+- Logging estruturado de todas as requisições (método, path, status, duração)
+- Recovery automático de panics com stack trace
+- CORS configurável com origens permitidas
+- Content-Type JSON automático
+
+**Endpoints** ✅
+1. **POST /run** - Executa pipelines
+   - Aceita configuração inline YAML ou path para arquivo
+   - Validação de request/response
+   - Timeout configurável por pipeline
+   - Retorna execution_id único e duração em ms
+   - Tratamento de erros estruturados
+
+2. **GET /health** - Health check
+   - Status geral do servidor
+   - Status individual de cada plugin
+   - Útil para load balancers
+
+3. **GET /plugins** - Lista plugins
+   - Informações detalhadas de cada plugin (ID, nome, descrição, versão)
+   - Extração automática de inputs/outputs dos schemas
+   - Count total de plugins
+
+4. **GET /ready** - Readiness probe
+   - Indica se servidor está pronto para receber tráfego
+   - Timestamp de quando ficou ready
+   - Útil para Kubernetes
+
+**Testes** ✅
+- 17 testes unitários (100% pass)
+- Coverage dos handlers e middlewares
+- Testes de sucesso e erro
+- Testes de validação de request
+- Testes de panic recovery
+- Testes de logging
+
+**Comandos Makefile** ✅
+```bash
+make server            # Build e inicia o servidor
+make server-build      # Build do servidor local
+make server-build-prod # Build de produção (Linux AMD64)
+make server-dev        # Inicia servidor em modo verbose
+make server-run        # Executa servidor já compilado
+```
+
+#### Testes Manuais Realizados
+- ✅ Servidor inicia sem erros na porta 8080
+- ✅ Endpoint /health retorna status healthy com 4 plugins
+- ✅ Endpoint /ready retorna ready=true
+- ✅ Endpoint /plugins lista todos os 4 plugins
+- ✅ Endpoint POST /run executa pipeline com sucesso
+- ✅ Endpoint POST /run retorna erro estruturado quando config está vazio
+- ✅ Logs estruturados em formato JSON
+- ✅ Graceful shutdown funcionando
 
 ---
 
