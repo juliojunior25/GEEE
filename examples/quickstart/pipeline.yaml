@@ -1,0 +1,31 @@
+name: user-data-enrichment
+description: Pipeline de exemplo que processa dados de usuários, extrai informações e enriquece com dados externos
+
+# Timeout global do pipeline (em segundos)
+timeout: 30
+
+# Parar na primeira falha
+stop_on_error: false
+
+plugins:
+  # Step 1: Extrai email do texto usando regex
+  - id: regex-extractor
+    config:
+      patterns:
+        - name: email
+          pattern: '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+        - name: phone
+          pattern: '\+?\d{1,3}[-.\s]?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}'
+
+  # Step 2: Transforma campos extraídos
+  - id: json-transformer
+    config:
+      mappings:
+        - from: email
+          to: user_email
+        - from: phone
+          to: user_phone
+        - from: name
+          to: user_name
+    depends_on:
+      - regex-extractor

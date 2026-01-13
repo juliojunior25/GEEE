@@ -1,0 +1,17 @@
+{
+  "success": true,
+  "data": {
+    "source": "web_form",
+    "text": "Entre em contato: joao.silva@exemplo.com.br ou ligue +55 11 98765-4321",
+    "user_email": "joao.silva@exemplo.com.br",
+    "user_name": "João Silva",
+    "user_phone": "+55 11 98765"
+  },
+  "metadata": {
+    "plugin_id": "",
+    "execution_id": "642f6e07-1fa1-4230-afc5-4ef6023cfafd",
+    "start_time": "2026-01-13T10:50:20.690386-03:00",
+    "end_time": "2026-01-13T10:50:20.690655-03:00",
+    "duration_ms": 0
+  }
+}

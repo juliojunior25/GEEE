@@ -137,13 +137,15 @@ func (e *DefaultExecutor) Execute(ctx context.Context, plan *core.ExecutionPlan,
 		finalResult = &types.PluginResult{
 			Success: true,
 			Data:    state,
-			Metadata: &types.ExecutionMetadata{
-				ExecutionID: execID,
-				StartTime:   startTime,
-				EndTime:     time.Now(),
-				DurationMs:  duration.Milliseconds(),
-			},
 		}
+	}
+
+	// Always set metadata
+	finalResult.Metadata = &types.ExecutionMetadata{
+		ExecutionID: execID,
+		StartTime:   startTime,
+		EndTime:     time.Now(),
+		DurationMs:  duration.Milliseconds(),
 	}
 
 	return finalResult, nil

@@ -47,6 +47,100 @@ make build
 make run
 ```
 
+## 🎓 Exemplo Completo - Passo a Passo
+
+### Opção 1: Teste Rápido (Recomendado)
+
+Execute o exemplo quickstart automatizado:
+
+```bash
+# Build do GEEE
+make build-local
+
+# Execute o exemplo completo
+cd examples/quickstart
+./run.sh
+```
+
+O script irá:
+- ✅ Verificar instalação
+- ✅ Executar pipeline de exemplo
+- ✅ Mostrar resultados formatados
+
+### Opção 2: Execução Manual (CLI)
+
+```bash
+# 1. Crie um pipeline (pipeline.yaml)
+cat > my-pipeline.yaml << 'EOF'
+name: exemplo-simples
+description: Extrai email e gera relatório
+plugins:
+  - id: regex-extractor
+    config:
+      patterns:
+        - name: email
+          pattern: '\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
+
+  - id: template-renderer
+    config:
+      template: "Email encontrado: {{.email}}"
+    depends_on:
+      - regex-extractor
+EOF
+
+# 2. Crie um input (input.json)
+cat > input.json << 'EOF'
+{
+  "text": "Contato: usuario@exemplo.com"
+}
+EOF
+
+# 3. Execute
+./bin/geee run --config my-pipeline.yaml --input input.json
+
+# 4. Ver resultado formatado
+./bin/geee run --config my-pipeline.yaml --input input.json --output result.json
+cat result.json | jq -r '.data.result'
+# Output: "Email encontrado: usuario@exemplo.com"
+```
+
+### Opção 3: HTTP Server
+
+```bash
+# Terminal 1: Inicie o servidor
+make server
+
+# Terminal 2: Envie requisição
+curl -X POST http://localhost:8080/run \
+  -H "Content-Type: application/json" \
+  -d '{
+    "config": "name: test\nplugins:\n  - id: json-transformer\n    config:\n      mappings:\n        - from: input\n          to: output",
+    "input": {"input": "hello"}
+  }' | jq '.'
+
+# Verifique health
+curl http://localhost:8080/health | jq '.'
+
+# Liste plugins disponíveis
+curl http://localhost:8080/plugins | jq '.'
+```
+
+### Exemplo Real Completo
+
+Veja um exemplo completo funcionando em: **`examples/quickstart/`**
+
+Este exemplo demonstra:
+- 📧 Extração de email e telefone com regex
+- 🔄 Transformação de campos
+- 🌐 Busca de dados em API externa
+- 📝 Geração de relatório formatado
+
+```bash
+cd examples/quickstart
+cat README.md  # Documentação completa
+./run.sh       # Execução automatizada
+```
+
 ## 📚 Comandos Disponíveis
 
 ### Desenvolvimento
