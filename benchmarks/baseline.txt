@@ -1,0 +1,30 @@
+goos: darwin
+goarch: arm64
+pkg: github.com/yourusername/geee/internal/executor
+cpu: Apple M1
+BenchmarkDAG_GetReadySteps_NoDependencies-8     	 1334946	       905.6 ns/op	    1544 B/op	      19 allocs/op
+BenchmarkDAG_GetReadySteps_WithDependencies-8   	 1291825	       957.3 ns/op	    1000 B/op	      15 allocs/op
+BenchmarkDAG_MarkCompleted-8                    	 2370428	       505.4 ns/op	     352 B/op	       2 allocs/op
+BenchmarkDAG_IsComplete-8                       	84300742	        14.17 ns/op	       0 B/op	       0 allocs/op
+BenchmarkExecutor_SimplePipeline-8              	  112092	     10713 ns/op	    6174 B/op	      92 allocs/op
+BenchmarkExecutor_MultiplePlugins-8             	   45120	     26401 ns/op	   11629 B/op	     184 allocs/op
+BenchmarkExecutor_ParallelPlugins-8             	   63459	     18995 ns/op	    8899 B/op	     137 allocs/op
+PASS
+ok  	github.com/yourusername/geee/internal/executor	151.985s
+?   	github.com/yourusername/geee/plugins	[no test files]
+?   	github.com/yourusername/geee/plugins/base	[no test files]
+PASS
+ok  	github.com/yourusername/geee/plugins/http-fetcher	0.267s
+goos: darwin
+goarch: arm64
+pkg: github.com/yourusername/geee/plugins/json-transformer
+cpu: Apple M1
+BenchmarkPlugin_Execute_SingleMapping-8      	  728437	      1642 ns/op	    1040 B/op	      23 allocs/op
+BenchmarkPlugin_Execute_MultipleMappings-8   	  259977	      4615 ns/op	    2217 B/op	      54 allocs/op
+BenchmarkPlugin_Execute_LargeState-8         	  199398	      6120 ns/op	   10036 B/op	      32 allocs/op
+PASS
+ok  	github.com/yourusername/geee/plugins/json-transformer	4.946s
+PASS
+ok  	github.com/yourusername/geee/plugins/regex-extractor	0.228s
+PASS
+ok  	github.com/yourusername/geee/plugins/template-renderer	0.215s

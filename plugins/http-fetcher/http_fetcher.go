@@ -73,7 +73,7 @@ func New() *Plugin {
 // Execute performs the HTTP request
 func (p *Plugin) Execute(ctx *types.ExecutionContext) (*types.PluginResult, error) {
 	// Validate execution context
-	if err := p.BasePlugin.Validate(ctx); err != nil {
+	if err := p.Validate(ctx); err != nil {
 		return nil, err
 	}
 
@@ -144,7 +144,7 @@ func (p *Plugin) Execute(ctx *types.ExecutionContext) (*types.PluginResult, erro
 	if err != nil {
 		return nil, fmt.Errorf("HTTP request failed: %w", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	// Read response body
 	bodyBytes, err := io.ReadAll(resp.Body)

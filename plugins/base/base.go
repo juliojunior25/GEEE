@@ -78,7 +78,7 @@ func (b *BasePlugin) Validate(ctx *types.ExecutionContext) error {
 	}
 
 	// Validate config schema if defined
-	if b.manifest.ConfigSchema != nil && len(b.manifest.ConfigSchema) > 0 {
+	if len(b.manifest.ConfigSchema) > 0 {
 		if err := ValidateAgainstSchema(ctx.Config, b.manifest.ConfigSchema); err != nil {
 			return errors.NewValidationError(
 				fmt.Sprintf("Config validation failed: %v", err),
@@ -89,7 +89,7 @@ func (b *BasePlugin) Validate(ctx *types.ExecutionContext) error {
 	}
 
 	// Validate input schema if defined
-	if b.manifest.InputSchema != nil && len(b.manifest.InputSchema) > 0 {
+	if len(b.manifest.InputSchema) > 0 {
 		if err := ValidateAgainstSchema(ctx.State, b.manifest.InputSchema); err != nil {
 			return errors.NewValidationError(
 				fmt.Sprintf("Input validation failed: %v", err),

@@ -100,11 +100,9 @@ func (e *DefaultExecutor) Execute(ctx context.Context, plan *core.ExecutionPlan,
 					"plugin_id": step.PluginID,
 				})
 			} else {
-				// Merge result data into state
+				// Replace state with result data (plugin returns complete state)
 				if result.result != nil && result.result.Data != nil {
-					for k, v := range result.result.Data {
-						state[k] = v
-					}
+					state = result.result.Data
 					finalResult = result.result
 				}
 
@@ -120,7 +118,7 @@ func (e *DefaultExecutor) Execute(ctx context.Context, plan *core.ExecutionPlan,
 			}
 
 			// Mark step as completed
-			dag.MarkCompleted(step.PluginID)
+			dag.MarkCompleted(step)
 		}
 	}
 

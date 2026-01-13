@@ -8,23 +8,29 @@ import (
 
 // DAG represents a directed acyclic graph of plugin execution steps
 type DAG struct {
-	steps      []*core.ExecutionStep
-	completed  map[string]bool
-	inProgress map[string]bool
-	mu         sync.RWMutex
+	steps             []*core.ExecutionStep
+	stepToIdx         map[*core.ExecutionStep]int // Maps step pointer to its index
+	completed         map[int]bool                // Maps step index to completion status
+	inProgress        map[int]bool                // Maps step index to in-progress status
+	completedPluginID map[string]bool             // Tracks which plugin IDs have completed (for dependency resolution)
+	mu                sync.RWMutex
 }
 
 // NewDAG creates a new DAG from execution steps
 func NewDAG(steps []core.ExecutionStep) *DAG {
 	stepsCopy := make([]*core.ExecutionStep, len(steps))
+	stepToIdx := make(map[*core.ExecutionStep]int)
 	for i := range steps {
 		stepsCopy[i] = &steps[i]
+		stepToIdx[stepsCopy[i]] = i
 	}
 
 	return &DAG{
-		steps:      stepsCopy,
-		completed:  make(map[string]bool),
-		inProgress: make(map[string]bool),
+		steps:             stepsCopy,
+		stepToIdx:         stepToIdx,
+		completed:         make(map[int]bool),
+		inProgress:        make(map[int]bool),
+		completedPluginID: make(map[string]bool),
 	}
 }
 
@@ -36,16 +42,16 @@ func (d *DAG) GetReadySteps() []*core.ExecutionStep {
 
 	ready := make([]*core.ExecutionStep, 0)
 
-	for _, step := range d.steps {
+	for i, step := range d.steps {
 		// Skip if already completed or in progress
-		if d.completed[step.PluginID] || d.inProgress[step.PluginID] {
+		if d.completed[i] || d.inProgress[i] {
 			continue
 		}
 
 		// Check if all dependencies are completed
 		if d.areDependenciesCompleted(step) {
 			ready = append(ready, step)
-			d.inProgress[step.PluginID] = true
+			d.inProgress[i] = true
 		}
 	}
 
@@ -53,18 +59,21 @@ func (d *DAG) GetReadySteps() []*core.ExecutionStep {
 }
 
 // MarkCompleted marks a step as completed
-func (d *DAG) MarkCompleted(pluginID string) {
+func (d *DAG) MarkCompleted(step *core.ExecutionStep) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
 
-	d.completed[pluginID] = true
-	delete(d.inProgress, pluginID)
+	if idx, ok := d.stepToIdx[step]; ok {
+		d.completed[idx] = true
+		delete(d.inProgress, idx)
+		d.completedPluginID[step.PluginID] = true
+	}
 }
 
 // areDependenciesCompleted checks if all dependencies of a step are completed
 func (d *DAG) areDependenciesCompleted(step *core.ExecutionStep) bool {
 	for _, depID := range step.DependsOn {
-		if !d.completed[depID] {
+		if !d.completedPluginID[depID] {
 			return false
 		}
 	}
@@ -85,8 +94,8 @@ func (d *DAG) GetCompleted() []string {
 	defer d.mu.RUnlock()
 
 	completed := make([]string, 0, len(d.completed))
-	for id := range d.completed {
-		completed = append(completed, id)
+	for idx := range d.completed {
+		completed = append(completed, d.steps[idx].PluginID)
 	}
 	return completed
 }
@@ -97,8 +106,8 @@ func (d *DAG) GetInProgress() []string {
 	defer d.mu.RUnlock()
 
 	inProgress := make([]string, 0, len(d.inProgress))
-	for id := range d.inProgress {
-		inProgress = append(inProgress, id)
+	for idx := range d.inProgress {
+		inProgress = append(inProgress, d.steps[idx].PluginID)
 	}
 	return inProgress
 }
@@ -109,8 +118,8 @@ func (d *DAG) GetPending() []string {
 	defer d.mu.RUnlock()
 
 	pending := make([]string, 0)
-	for _, step := range d.steps {
-		if !d.completed[step.PluginID] && !d.inProgress[step.PluginID] {
+	for i, step := range d.steps {
+		if !d.completed[i] && !d.inProgress[i] {
 			pending = append(pending, step.PluginID)
 		}
 	}

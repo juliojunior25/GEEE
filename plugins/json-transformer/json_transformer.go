@@ -64,7 +64,7 @@ func New() *Plugin {
 // Execute performs the field transformation
 func (p *Plugin) Execute(ctx *types.ExecutionContext) (*types.PluginResult, error) {
 	// Validate execution context
-	if err := p.BasePlugin.Validate(ctx); err != nil {
+	if err := p.Validate(ctx); err != nil {
 		return nil, err
 	}
 

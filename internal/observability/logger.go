@@ -71,11 +71,11 @@ func (l *JSONLogger) log(level LogLevel, msg string, fields map[string]interface
 	data, err := json.Marshal(entry)
 	if err != nil {
 		// Fallback to simple format if JSON marshaling fails
-		fmt.Fprintf(l.writer, "[%s] %s: %s\n", time.Now().Format(time.RFC3339), level, msg)
+		_, _ = fmt.Fprintf(l.writer, "[%s] %s: %s\n", time.Now().Format(time.RFC3339), level, msg)
 		return
 	}
 
-	fmt.Fprintln(l.writer, string(data))
+	_, _ = fmt.Fprintln(l.writer, string(data))
 }
 
 // shouldLog determines if a message at the given level should be logged

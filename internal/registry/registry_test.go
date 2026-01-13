@@ -221,7 +221,7 @@ func TestConcurrentAccess(t *testing.T) {
 	for i := 0; i < 10; i++ {
 		go func(id int) {
 			plugin := &mockPlugin{id: fmt.Sprintf("plugin-%d", id)}
-			registry.Register(plugin)
+			_ = registry.Register(plugin)
 			done <- true
 		}(i)
 	}

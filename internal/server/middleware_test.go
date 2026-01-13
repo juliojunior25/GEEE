@@ -15,7 +15,7 @@ func TestLoggingMiddleware(t *testing.T) {
 
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte("test response"))
+		_, _ = w.Write([]byte("test response"))
 	})
 
 	wrappedHandler := middleware(handler)
@@ -26,7 +26,7 @@ func TestLoggingMiddleware(t *testing.T) {
 	wrappedHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusOK {
 		t.Errorf("Expected status 200, got %d", resp.StatusCode)
@@ -50,7 +50,7 @@ func TestRecoveryMiddleware(t *testing.T) {
 	wrappedHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("Expected status 500, got %d", resp.StatusCode)
@@ -74,7 +74,7 @@ func TestContentTypeMiddleware(t *testing.T) {
 	wrappedHandler.ServeHTTP(w, req)
 
 	resp := w.Result()
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 
 	if resp.Header.Get("Content-Type") != "application/json" {
 		t.Errorf("Expected Content-Type application/json, got %s", resp.Header.Get("Content-Type"))
@@ -109,7 +109,7 @@ func TestLoggingMiddleware_CapturesStatusCode(t *testing.T) {
 			wrappedHandler.ServeHTTP(w, req)
 
 			resp := w.Result()
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			if resp.StatusCode != tt.expectedStatus {
 				t.Errorf("Expected status %d, got %d", tt.expectedStatus, resp.StatusCode)

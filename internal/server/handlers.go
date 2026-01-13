@@ -176,7 +176,7 @@ func (h *Handlers) HandleRun(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // HandleHealth handles GET /health requests
@@ -204,7 +204,7 @@ func (h *Handlers) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // HandleReady handles GET /ready requests (readiness probe)
@@ -222,7 +222,7 @@ func (h *Handlers) HandleReady(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}
 
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // HandlePlugins handles GET /plugins requests
@@ -263,7 +263,7 @@ func (h *Handlers) HandlePlugins(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // sendError sends a structured error response
@@ -278,7 +278,7 @@ func (h *Handlers) sendError(w http.ResponseWriter, status int, code, message, s
 	}
 
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // sendErrorFromStructured sends an error response from a StructuredError
@@ -295,7 +295,7 @@ func (h *Handlers) sendErrorFromStructured(w http.ResponseWriter, status int, er
 	}
 
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(resp)
+	_ = json.NewEncoder(w).Encode(resp)
 }
 
 // extractFieldsFromSchema extracts field names from a JSON schema

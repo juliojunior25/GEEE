@@ -123,6 +123,11 @@ func (s *Server) setupRouter() *chi.Mux {
 	return r
 }
 
+// Handler returns the HTTP handler for the server (useful for testing)
+func (s *Server) Handler() http.Handler {
+	return s.setupRouter()
+}
+
 // Start starts the HTTP server
 func (s *Server) Start() error {
 	router := s.setupRouter()

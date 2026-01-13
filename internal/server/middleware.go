@@ -50,17 +50,17 @@ func RecoveryMiddleware(logger types.Logger) func(next http.Handler) http.Handle
 				if rvr := recover(); rvr != nil {
 					// Log the panic
 					logger.Error("panic_recovered", map[string]interface{}{
-						"error":      fmt.Sprintf("%v", rvr),
-						"stack":      string(debug.Stack()),
-						"method":     r.Method,
-						"path":       r.URL.Path,
-						"remote":     r.RemoteAddr,
+						"error":  fmt.Sprintf("%v", rvr),
+						"stack":  string(debug.Stack()),
+						"method": r.Method,
+						"path":   r.URL.Path,
+						"remote": r.RemoteAddr,
 					})
 
 					// Return 500 error
 					w.Header().Set("Content-Type", "application/json")
 					w.WriteHeader(http.StatusInternalServerError)
-					w.Write([]byte(`{"success":false,"error":{"code":"INTERNAL_ERROR","message":"Internal server error"}}`))
+					_, _ = w.Write([]byte(`{"success":false,"error":{"code":"INTERNAL_ERROR","message":"Internal server error"}}`))
 				}
 			}()
 

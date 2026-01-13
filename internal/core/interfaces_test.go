@@ -81,8 +81,8 @@ func TestValidateExecutionPlan(t *testing.T) {
 		manifest: types.PluginManifest{ID: "plugin2", Name: "Plugin 2"},
 	}
 
-	registry.Register(plugin1)
-	registry.Register(plugin2)
+	_ = registry.Register(plugin1)
+	_ = registry.Register(plugin2)
 
 	tests := []struct {
 		name    string

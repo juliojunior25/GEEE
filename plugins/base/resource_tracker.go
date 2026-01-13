@@ -14,10 +14,10 @@ type ResourceTracker struct {
 	maxMemoryMB int
 	timeoutSec  int
 
-	startTime   time.Time
-	mu          sync.RWMutex
-	isRunning   bool
-	initialMem  uint64
+	startTime  time.Time
+	mu         sync.RWMutex
+	isRunning  bool
+	initialMem uint64
 }
 
 // NewResourceTracker creates a new resource tracker

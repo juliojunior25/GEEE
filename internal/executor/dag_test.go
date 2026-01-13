@@ -57,7 +57,7 @@ func TestGetReadySteps_WithDependencies(t *testing.T) {
 	}
 
 	// Mark step1 as completed
-	dag.MarkCompleted("step1")
+	dag.MarkCompleted(ready[0])
 
 	// Second call: only step2 should be ready
 	ready = dag.GetReadySteps()
@@ -69,7 +69,7 @@ func TestGetReadySteps_WithDependencies(t *testing.T) {
 	}
 
 	// Mark step2 as completed
-	dag.MarkCompleted("step2")
+	dag.MarkCompleted(ready[0])
 
 	// Third call: only step3 should be ready
 	ready = dag.GetReadySteps()
@@ -81,7 +81,7 @@ func TestGetReadySteps_WithDependencies(t *testing.T) {
 	}
 
 	// Mark step3 as completed
-	dag.MarkCompleted("step3")
+	dag.MarkCompleted(ready[0])
 
 	// Fourth call: no more steps
 	ready = dag.GetReadySteps()
@@ -105,17 +105,17 @@ func TestGetReadySteps_ParallelExecution(t *testing.T) {
 		t.Fatalf("Expected 2 ready steps, got %d", len(ready))
 	}
 
-	readyIDs := make(map[string]bool)
+	readyIDs := make(map[string]*core.ExecutionStep)
 	for _, step := range ready {
-		readyIDs[step.PluginID] = true
+		readyIDs[step.PluginID] = step
 	}
 
-	if !readyIDs["step1"] || !readyIDs["step2"] {
+	if readyIDs["step1"] == nil || readyIDs["step2"] == nil {
 		t.Error("Expected step1 and step2 to be ready")
 	}
 
 	// Mark step1 as completed (step2 still in progress)
-	dag.MarkCompleted("step1")
+	dag.MarkCompleted(readyIDs["step1"])
 
 	// step3 should not be ready yet (step2 not completed)
 	ready = dag.GetReadySteps()
@@ -124,7 +124,7 @@ func TestGetReadySteps_ParallelExecution(t *testing.T) {
 	}
 
 	// Mark step2 as completed
-	dag.MarkCompleted("step2")
+	dag.MarkCompleted(readyIDs["step2"])
 
 	// Now step3 should be ready
 	ready = dag.GetReadySteps()
@@ -143,13 +143,18 @@ func TestMarkCompleted(t *testing.T) {
 
 	dag := NewDAG(steps)
 
-	if dag.completed["step1"] {
+	if dag.completed[0] {
 		t.Fatal("step1 should not be completed initially")
 	}
 
-	dag.MarkCompleted("step1")
+	ready := dag.GetReadySteps()
+	if len(ready) != 1 {
+		t.Fatal("Expected 1 ready step")
+	}
 
-	if !dag.completed["step1"] {
+	dag.MarkCompleted(ready[0])
+
+	if !dag.completed[0] {
 		t.Fatal("step1 should be marked as completed")
 	}
 }
@@ -166,14 +171,17 @@ func TestIsComplete(t *testing.T) {
 		t.Fatal("DAG should not be complete initially")
 	}
 
-	dag.GetReadySteps() // Mark as in progress
-	dag.MarkCompleted("step1")
+	ready := dag.GetReadySteps() // Mark as in progress
+	if len(ready) != 2 {
+		t.Fatal("Expected 2 ready steps")
+	}
+	dag.MarkCompleted(ready[0])
 
 	if dag.IsComplete() {
 		t.Fatal("DAG should not be complete with only 1 step completed")
 	}
 
-	dag.MarkCompleted("step2")
+	dag.MarkCompleted(ready[1])
 
 	if !dag.IsComplete() {
 		t.Fatal("DAG should be complete with all steps completed")
@@ -187,15 +195,18 @@ func TestGetCompleted(t *testing.T) {
 	}
 
 	dag := NewDAG(steps)
-	dag.GetReadySteps() // Mark as in progress
-	dag.MarkCompleted("step1")
+	ready := dag.GetReadySteps() // Mark as in progress
+	if len(ready) != 2 {
+		t.Fatal("Expected 2 ready steps")
+	}
+	dag.MarkCompleted(ready[0])
 
 	completed := dag.GetCompleted()
 	if len(completed) != 1 {
 		t.Fatalf("Expected 1 completed step, got %d", len(completed))
 	}
-	if completed[0] != "step1" {
-		t.Errorf("Expected step1, got %s", completed[0])
+	if completed[0] != "step1" && completed[0] != "step2" {
+		t.Errorf("Expected step1 or step2, got %s", completed[0])
 	}
 }
 
@@ -213,7 +224,7 @@ func TestGetInProgress(t *testing.T) {
 		t.Fatalf("Expected 2 in-progress steps, got %d", len(inProgress))
 	}
 
-	dag.MarkCompleted(ready[0].PluginID)
+	dag.MarkCompleted(ready[0])
 
 	inProgress = dag.GetInProgress()
 	if len(inProgress) != 1 {

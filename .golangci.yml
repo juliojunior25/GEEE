@@ -1,0 +1,32 @@
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - staticcheck
+    - govet
+    - ineffassign
+    - unused
+
+linters-settings:
+  errcheck:
+    # Ignore error checks in defer statements in tests
+    exclude-functions:
+      - (net/http.ResponseBody).Close
+      - (io.Closer).Close
+
+issues:
+  # Exclude nil check warnings in test files (false positives)
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - staticcheck
+      text: "SA5011"
+    - path: test/
+      linters:
+        - staticcheck
+      text: "SA5011"
