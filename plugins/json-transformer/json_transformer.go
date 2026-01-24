@@ -84,7 +84,7 @@ func (p *Plugin) Execute(ctx *types.ExecutionContext) (*types.PluginResult, erro
 	}
 
 	// Create output map
-	output := make(map[string]interface{})
+	output := make(map[string]interface{}, len(ctx.State)+len(config.Mappings))
 
 	// Copy all fields first
 	for k, v := range ctx.State {

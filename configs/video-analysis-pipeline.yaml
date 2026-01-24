@@ -1,0 +1,144 @@
+name: video-analysis-pipeline
+description: |
+  Complete video processing pipeline that:
+  1. Downloads video from TikTok/Instagram/YouTube Shorts (yt-dlp)
+  2. Transcribes audio using Whisper AI
+  3. Analyzes content with local LLM (llama.cpp)
+  4. Enriches locations with Google Geocoding API
+
+  Usage:
+    make build-local
+    ./bin/geee run --config configs/video-analysis-pipeline.yaml --output result.json
+
+timeout: 300  # 5 minutes total
+stop_on_error: true
+
+plugins:
+  # Step 1: Download video and extract audio
+  - id: video-downloader
+    config:
+      video_url: "https://www.youtube.com/shorts/dQw4w9WgXcQ"  # Replace with your URL
+      # Supported platforms:
+      # - YouTube Shorts: https://www.youtube.com/shorts/VIDEO_ID
+      # - TikTok: https://www.tiktok.com/@user/video/VIDEO_ID
+      # - Instagram Reels: https://www.instagram.com/reel/REEL_ID/
+      output_format: "wav"  # wav (Whisper), mp3, mp4
+      quality: "best"       # best, worst, 720p, 480p, etc.
+    timeout: 120  # 2 minutes for download
+    optional: false
+
+  # Step 2: Transcribe audio to text
+  - id: whisper-transcriber
+    config:
+      model: "base"           # tiny, base, small, medium, large
+                               # Accuracy vs Speed: tiny=fastest, large=best
+      language: "en"          # auto-detect if omitted, or specify: pt, es, fr, etc.
+      output_format: "json"   # json (recommended), txt, srt, vtt
+      # Optional: task can be "transcribe" or "translate" (to English)
+      # task: "transcribe"
+    depends_on:
+      - video-downloader
+    timeout: 180  # 3 minutes for transcription
+    optional: false
+
+  # Step 3: Analyze transcript with LLM
+  - id: llm-analyzer
+    config:
+      llm_endpoint: "http://localhost:8080/completion"  # llama.cpp server
+      # Dynamic field extraction - specify what you want extracted:
+      fields_to_extract:
+        - summary          # Brief summary of the video
+        - main_topic       # Main subject/topic discussed
+        - key_points       # Important points or takeaways (array)
+        - entities         # People, organizations, products mentioned (array)
+        - locations        # Places mentioned in the video (array)
+        - establishment_name
+        - city
+        - query
+        - sentiment        # Overall sentiment: positive, negative, neutral
+        - language_style   # Formal, informal, educational, entertainment, etc.
+        - call_to_action   # Any CTA mentioned (subscribe, visit, buy, etc.)
+        - hashtags         # Relevant hashtags or tags (array)
+        - duration_seconds # Estimated content duration from transcript
+
+      # Optional: Custom prompt template (uses dynamic fields if not provided)
+      # custom_prompt: |
+      #   Analyze this video transcript and extract: {fields}
+      #
+      #   Transcript: {transcript}
+      #
+      #   Return JSON with all requested fields.
+
+      # LLM parameters
+      temperature: 0.3      # Lower = more focused (0.0-1.0)
+      max_tokens: 1000      # Maximum response length
+      top_p: 0.9            # Nucleus sampling
+      stop: ["</s>"]        # Stop sequences
+    depends_on:
+      - whisper-transcriber
+    timeout: 60  # 1 minute for LLM analysis
+    optional: false
+
+  # Step 4: Search business data via Firecrawl
+  - id: firecrawl-search
+    config:
+      api_key: ${FIRECRAWL_API_KEY}
+    depends_on:
+      - llm-analyzer
+    timeout: 60
+    optional: false
+
+  # Step 5: Enrich locations with coordinates (optional)
+  - id: geocoding-enricher
+    config:
+      api_key: ${GOOGLE_GEOCODING_API_KEY}  # Set in environment
+      locations_field: "locations"           # Field from LLM output
+    depends_on:
+      - firecrawl-search
+    timeout: 30
+    optional: true  # Won't fail pipeline if API unavailable or no locations found
+
+# Expected Output Structure:
+# {
+#   "video_url": "https://...",
+#   "video_title": "Video Title",
+#   "video_duration": "0:45",
+#   "transcript": "Full transcription text...",
+#   "transcript_segments": [...],  # If JSON format used
+#   "language": "en",
+#   "summary": "Brief summary...",
+#   "main_topic": "Topic discussed",
+#   "key_points": ["Point 1", "Point 2"],
+#   "entities": ["Person A", "Company B"],
+#   "locations": ["San Francisco", "New York"],
+#   "sentiment": "positive",
+#   "language_style": "educational",
+#   "call_to_action": "Subscribe for more content",
+#   "hashtags": ["#tech", "#ai"],
+#   "duration_seconds": 45,
+#   "geocoded_locations": [
+#     {
+#       "query": "San Francisco",
+#       "formatted_address": "San Francisco, CA, USA",
+#       "latitude": 37.7749,
+#       "longitude": -122.4194
+#     }
+#   ]
+# }
+
+# Notes:
+# 1. URL can also be passed via initial state (input.json):
+#    {"video_url": "https://..."}
+#    Config URL takes precedence if both provided.
+#
+# 2. All temporary files are automatically cleaned up after execution
+#
+# 3. Start llama.cpp server before running:
+#    ./scripts/start-llm.sh
+#
+# 4. Set environment variables:
+#    export FIRECRAWL_API_KEY="your-api-key"
+#    export GOOGLE_GEOCODING_API_KEY="your-api-key"
+#
+# 5. Customize fields_to_extract for your use case - add any fields you want!
+#    Examples: "questions_asked", "products_mentioned", "timestamps", etc.

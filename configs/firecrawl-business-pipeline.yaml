@@ -1,0 +1,61 @@
+name: firecrawl-business-pipeline
+description: |
+  Pipeline para:
+  1. Baixar um vídeo (YouTube Shorts/TikTok/Instagram Reels)
+  2. Transcrever com Whisper
+  3. Extrair nome do estabelecimento + cidade via llama.cpp
+  4. Buscar dados estruturados no Firecrawl
+
+timeout: 300
+stop_on_error: true
+
+plugins:
+  - id: video-downloader
+    config:
+      video_url: "https://www.youtube.com/shorts/COLE_SEU_VIDEO"
+      quality: "best"
+      extract_audio: true
+    timeout: 120
+    optional: false
+
+  - id: whisper-transcriber
+    config:
+      model_size: "base"
+      language: "pt"
+      output_format: "json"
+    depends_on:
+      - video-downloader
+    timeout: 180
+    optional: false
+
+  - id: llm-analyzer
+    config:
+      api_endpoint: "http://localhost:8080/completion"
+      fields_to_extract:
+        - establishment_name
+        - city
+        - query
+      prompt_template: |
+        Extraia do transcript:
+        - establishment_name (string)
+        - city (string)
+        - query (string com "<establishment_name> <city>")
+
+        Transcript:
+        {{.Transcript}}
+
+        Retorne APENAS JSON válido com esses três campos.
+      temperature: 0.2
+      max_tokens: 300
+    depends_on:
+      - whisper-transcriber
+    timeout: 60
+    optional: false
+
+  - id: firecrawl-search
+    config:
+      api_key: "fc-COLE_SEU_TOKEN_AQUI"
+    depends_on:
+      - llm-analyzer
+    timeout: 60
+    optional: false

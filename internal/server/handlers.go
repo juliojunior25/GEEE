@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -21,6 +22,13 @@ type Handlers struct {
 	logger   types.Logger
 	ready    bool
 	readyAt  time.Time
+	cacheMu  sync.RWMutex
+	cache    map[string]cachedPlan
+}
+
+type cachedPlan struct {
+	modTime time.Time
+	plan    *core.ExecutionPlan
 }
 
 // NewHandlers creates a new Handlers instance
@@ -31,7 +39,29 @@ func NewHandlers(registry core.PluginRegistry, executor core.Executor, logger ty
 		logger:   logger,
 		ready:    true,
 		readyAt:  time.Now(),
+		cache:    make(map[string]cachedPlan),
 	}
+}
+
+func (h *Handlers) getCachedPlan(path string, modTime time.Time) (*core.ExecutionPlan, error) {
+	h.cacheMu.RLock()
+	if entry, ok := h.cache[path]; ok && entry.modTime.Equal(modTime) {
+		h.cacheMu.RUnlock()
+		return entry.plan, nil
+	}
+	h.cacheMu.RUnlock()
+
+	cfg, err := config.LoadFromFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	plan := cfg.ToExecutionPlan()
+	h.cacheMu.Lock()
+	h.cache[path] = cachedPlan{modTime: modTime, plan: plan}
+	h.cacheMu.Unlock()
+
+	return plan, nil
 }
 
 // HandleRun handles POST /run requests to execute a pipeline
@@ -61,16 +91,20 @@ func (h *Handlers) HandleRun(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Load configuration
-	var cfg *config.Config
+	var plan *core.ExecutionPlan
 	var err error
 
 	// Check if config is a file path or inline YAML
-	if _, statErr := os.Stat(req.Config); statErr == nil {
+	if info, statErr := os.Stat(req.Config); statErr == nil {
 		// It's a file path
-		cfg, err = config.LoadFromFile(req.Config)
+		plan, err = h.getCachedPlan(req.Config, info.ModTime())
 	} else {
 		// Assume it's inline YAML
+		var cfg *config.Config
 		cfg, err = config.LoadFromBytes([]byte(req.Config))
+		if err == nil {
+			plan = cfg.ToExecutionPlan()
+		}
 	}
 
 	if err != nil {
@@ -89,8 +123,10 @@ func (h *Handlers) HandleRun(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Convert config to execution plan
-	plan := cfg.ToExecutionPlan()
+	if plan == nil {
+		h.sendError(w, http.StatusBadRequest, "CONFIG_LOAD_FAILED", "Failed to build execution plan", "Check your configuration input")
+		return
+	}
 
 	// Validate plan
 	if err := core.ValidateExecutionPlan(plan, h.registry); err != nil {

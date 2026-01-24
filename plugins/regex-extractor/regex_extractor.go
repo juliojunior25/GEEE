@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"sync"
 
 	"github.com/yourusername/geee/pkg/types"
 	"github.com/yourusername/geee/plugins/base"
@@ -24,6 +25,7 @@ type Config struct {
 // Plugin implements regex-based data extraction
 type Plugin struct {
 	*base.BasePlugin
+	compiledCache sync.Map
 }
 
 // New creates a new regex-extractor plugin instance
@@ -66,6 +68,24 @@ func New() *Plugin {
 	}
 }
 
+type compiledPattern struct {
+	name  string
+	regex *regexp.Regexp
+}
+
+func (p *Plugin) compilePatterns(patterns []Pattern) ([]compiledPattern, error) {
+	compiled := make([]compiledPattern, 0, len(patterns))
+	for _, pattern := range patterns {
+		regex, err := regexp.Compile(pattern.Pattern)
+		if err != nil {
+			return nil, fmt.Errorf("invalid regex pattern '%s': %w", pattern.Name, err)
+		}
+		compiled = append(compiled, compiledPattern{name: pattern.Name, regex: regex})
+	}
+
+	return compiled, nil
+}
+
 // Execute performs the regex extraction
 func (p *Plugin) Execute(ctx *types.ExecutionContext) (*types.PluginResult, error) {
 	// Validate execution context
@@ -104,22 +124,37 @@ func (p *Plugin) Execute(ctx *types.ExecutionContext) (*types.PluginResult, erro
 		return nil, fmt.Errorf("input field '%s' must be a string, got %T", config.InputField, textValue)
 	}
 
+	var compiled []compiledPattern
+	if keyBytes, err := json.Marshal(config.Patterns); err == nil {
+		cacheKey := string(keyBytes)
+		if cached, ok := p.compiledCache.Load(cacheKey); ok {
+			compiled = cached.([]compiledPattern)
+		} else {
+			compiled, err = p.compilePatterns(config.Patterns)
+			if err != nil {
+				return nil, err
+			}
+			p.compiledCache.Store(cacheKey, compiled)
+		}
+	} else {
+		var err error
+		compiled, err = p.compilePatterns(config.Patterns)
+		if err != nil {
+			return nil, err
+		}
+	}
+
 	// Create output map with all original fields
-	output := make(map[string]interface{})
+	output := make(map[string]interface{}, len(ctx.State)+len(compiled))
 	for k, v := range ctx.State {
 		output[k] = v
 	}
 
 	// Extract patterns
-	for _, pattern := range config.Patterns {
-		regex, err := regexp.Compile(pattern.Pattern)
-		if err != nil {
-			return nil, fmt.Errorf("invalid regex pattern '%s': %w", pattern.Name, err)
-		}
-
-		match := regex.FindString(text)
+	for _, pattern := range compiled {
+		match := pattern.regex.FindString(text)
 		if match != "" {
-			output[pattern.Name] = match
+			output[pattern.name] = match
 		}
 	}
 

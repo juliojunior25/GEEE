@@ -47,11 +47,6 @@ func TestDAG_DuplicatePluginIDs(t *testing.T) {
 		t.Error("Both steps should be marked as completed")
 	}
 
-	// Check that both plugin IDs were marked as completed
-	if !dag.completedPluginID["json-transformer"] {
-		t.Error("Plugin ID json-transformer should be marked as completed")
-	}
-
 	// DAG should be complete
 	if !dag.IsComplete() {
 		t.Error("DAG should be complete")

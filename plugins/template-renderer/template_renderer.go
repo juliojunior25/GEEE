@@ -115,7 +115,7 @@ func (p *Plugin) Execute(ctx *types.ExecutionContext) (*types.PluginResult, erro
 	}
 
 	// Create output map with all original fields
-	output := make(map[string]interface{})
+	output := make(map[string]interface{}, len(ctx.State)+1)
 	for k, v := range ctx.State {
 		output[k] = v
 	}

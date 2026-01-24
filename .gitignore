@@ -56,3 +56,20 @@ vendor/
 # Cache do Go
 go.work
 go.work.sum
+
+# Arquivos gerados
+/gen/
+/generated/
+*.gen.go
+*.pb.go
+
+# Arquivos de configuração do editor
+*.code-workspace
+
+# Arquivos de build
+/build/
+/dist/
+*.zip
+
+# modelos baixados
+/models/

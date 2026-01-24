@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/yourusername/geee/pkg/types"
@@ -31,6 +32,8 @@ type Response struct {
 // Plugin implements HTTP fetching functionality
 type Plugin struct {
 	*base.BasePlugin
+	clientOnce sync.Once
+	client     *http.Client
 }
 
 // New creates a new http-fetcher plugin instance
@@ -68,6 +71,19 @@ func New() *Plugin {
 	return &Plugin{
 		BasePlugin: base.NewBasePlugin(manifest),
 	}
+}
+
+func (p *Plugin) getClient() *http.Client {
+	p.clientOnce.Do(func() {
+		transport := http.DefaultTransport.(*http.Transport).Clone()
+		transport.MaxIdleConns = 100
+		transport.IdleConnTimeout = 90 * time.Second
+		p.client = &http.Client{
+			Transport: transport,
+		}
+	})
+
+	return p.client
 }
 
 // Execute performs the HTTP request
@@ -122,19 +138,17 @@ func (p *Plugin) Execute(ctx *types.ExecutionContext) (*types.PluginResult, erro
 		return nil, fmt.Errorf("URL field '%s' must be a string, got %T", config.URLField, urlValue)
 	}
 
-	// Create HTTP client
-	client := &http.Client{
-		Timeout: time.Duration(config.Timeout) * time.Second,
+	client := p.getClient()
+
+	// Create HTTP request with timeout
+	reqCtx := ctx.Context
+	if config.Timeout > 0 {
+		var cancel context.CancelFunc
+		reqCtx, cancel = context.WithTimeout(reqCtx, time.Duration(config.Timeout)*time.Second)
+		defer cancel()
 	}
 
-	// Register cleanup to close idle connections
-	p.RegisterCleanup(func(cleanupCtx context.Context) error {
-		client.CloseIdleConnections()
-		return nil
-	})
-
-	// Create HTTP request
-	req, err := http.NewRequestWithContext(ctx.Context, config.Method, url, nil)
+	req, err := http.NewRequestWithContext(reqCtx, config.Method, url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -169,7 +183,7 @@ func (p *Plugin) Execute(ctx *types.ExecutionContext) (*types.PluginResult, erro
 	}
 
 	// Create output map with all original fields
-	output := make(map[string]interface{})
+	output := make(map[string]interface{}, len(ctx.State)+1)
 	for k, v := range ctx.State {
 		output[k] = v
 	}
