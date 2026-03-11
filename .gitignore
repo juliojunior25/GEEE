@@ -41,6 +41,7 @@ Thumbs.db
 
 # Dependências
 vendor/
+node_modules/
 
 # Arquivos temporários de execução
 /tmp/geee-*
@@ -70,6 +71,9 @@ go.work.sum
 /build/
 /dist/
 *.zip
+
+# Ferramentas AI / Flue / OpenCode
+.opencode/
 
 # modelos baixados
 /models/

@@ -13,6 +13,30 @@
 
 ## 🚀 Quick Start
 
+## 🤖 PR Agent
+
+O repositório agora inclui um PR agent via GitHub Actions + Flue.
+
+Como usar em uma PR:
+
+```text
+/pr-agent prepare
+```
+
+Se o agente preparar uma mudança pequena e segura, ele vai comentar um branch preparado e um comando de publish como:
+
+```text
+/pr-agent publish branch=agent/prepared/pr-12-abcdef1 sha=abcdef123456
+```
+
+Este setup esta fixado em `opencode/minimax-m2.5-free` e roda em host mode, sem secret de OpenCode.
+
+Configuracao minima no GitHub:
+
+- nenhum secret de OpenCode
+- variavel opcional `OPENCODE_RUNNER=self-hosted` se quiser rodar na sua propria maquina
+- variavel opcional `OPENCODE_MODEL` se quiser trocar o modelo depois
+
 ### Pré-requisitos
 
 - Go 1.21+
