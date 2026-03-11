@@ -1,0 +1,79 @@
+name: PR Agent Prepare
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pull_number:
+        description: Pull request number
+        required: true
+        type: number
+
+jobs:
+  prepare:
+    if: >
+      github.event_name == 'pull_request' ||
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'issue_comment' &&
+       github.event.issue.pull_request &&
+       startsWith(github.event.comment.body, '/pr-agent prepare'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+      packages: read
+    env:
+      OWNER: ${{ github.repository_owner }}
+      REPO: ${{ github.event.repository.name }}
+      ACTOR: ${{ github.actor }}
+      EVENT_NAME: ${{ github.event_name }}
+      COMMENT_BODY: ${{ github.event.comment.body }}
+      FLUE_USE_SANDBOX: ${{ vars.FLUE_USE_SANDBOX || 'false' }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Log in to GHCR
+        if: env.FLUE_USE_SANDBOX == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Pull sandbox image
+        if: env.FLUE_USE_SANDBOX == 'true'
+        run: docker pull "ghcr.io/${GITHUB_REPOSITORY,,}/flue-sandbox:latest"
+      - name: Run prepare workflow
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pull_number }}
+          PREPARE_BRANCH_PREFIX: agent/prepared
+          OPENCODE_MODEL: opencode/minimax-m2.5-free
+        run: |
+          EXTRA_ARGS=""
+          if [ "$FLUE_USE_SANDBOX" = "true" ]; then
+            EXTRA_ARGS="--sandbox ghcr.io/${GITHUB_REPOSITORY,,}/flue-sandbox:latest"
+          fi
+          ARGS=$(jq -nc \
+            --arg owner "$OWNER" \
+            --arg repo "$REPO" \
+            --arg actor "$ACTOR" \
+            --arg trigger "$EVENT_NAME" \
+            --arg commentBody "$COMMENT_BODY" \
+            --arg prepareBranchPrefix "$PREPARE_BRANCH_PREFIX" \
+            --argjson pullNumber "$PR_NUMBER" \
+            '{owner:$owner,repo:$repo,pullNumber:$pullNumber,actor:$actor,trigger:$trigger,commentBody:$commentBody,prepareBranchPrefix:$prepareBranchPrefix}')
+          npx flue run .flue/workflows/pr-prepare.ts \
+            $EXTRA_ARGS \
+            --args "$ARGS" \
+            --model "$OPENCODE_MODEL"

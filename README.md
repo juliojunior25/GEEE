@@ -13,6 +13,24 @@
 
 ## 🚀 Quick Start
 
+## 🤖 PR Agent
+
+O repositório agora inclui um PR agent via GitHub Actions + Flue.
+
+Como usar em uma PR:
+
+```text
+/pr-agent prepare
+```
+
+Se o agente preparar uma mudança pequena e segura, ele vai comentar um branch preparado e um comando de publish como:
+
+```text
+/pr-agent publish branch=agent/prepared/pr-12-abcdef1 sha=abcdef123456
+```
+
+Para habilitar no GitHub, configure o secret `OPENCODE_API_KEY`.
+
 ### Pré-requisitos
 
 - Go 1.21+

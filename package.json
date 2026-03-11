@@ -1,0 +1,16 @@
+{
+  "name": "geee-pr-agent",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "flue:prepare": "flue run .flue/workflows/pr-prepare.ts",
+    "flue:publish": "flue run .flue/workflows/pr-publish.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@flue/cli": "0.0.49",
+    "@flue/client": "0.0.31",
+    "typescript": "5.9.3",
+    "valibot": "1.2.0"
+  }
+}
