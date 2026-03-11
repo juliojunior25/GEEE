@@ -37,6 +37,13 @@ Configuracao minima no GitHub:
 - variavel opcional `OPENCODE_RUNNER=self-hosted` se quiser rodar na sua propria maquina
 - variavel opcional `OPENCODE_MODEL` se quiser trocar o modelo depois
 
+Quando alguem comenta `/pr-agent prepare`, o workflow agora:
+
+- reage com `eyes` no comentario para indicar que aceitou o comando
+- cria um check `prepare` no `head SHA` atual da PR
+- mantem o merge bloqueado enquanto esse rerun estiver em andamento
+- marca esse check como `success` ou `failure` no final
+
 ### Pré-requisitos
 
 - Go 1.21+

@@ -23,6 +23,7 @@ jobs:
     runs-on: ${{ vars.OPENCODE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 45
     permissions:
+      checks: write
       contents: write
       pull-requests: write
       issues: write
@@ -34,10 +35,56 @@ jobs:
       EVENT_NAME: ${{ github.event_name }}
       COMMENT_BODY: ${{ github.event.comment.body }}
       OPENCODE_MODEL: ${{ vars.OPENCODE_MODEL || 'opencode/minimax-m2.5-free' }}
+      PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pull_number }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Mark prepare as running
+        if: github.event_name != 'pull_request'
+        id: prepare_check_start
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const pullNumber = Number(process.env.PR_NUMBER);
+            const runUrl = `${process.env.GITHUB_SERVER_URL}/${process.env.GITHUB_REPOSITORY}/actions/runs/${process.env.GITHUB_RUN_ID}`;
+
+            const pr = await github.rest.pulls.get({
+              owner,
+              repo,
+              pull_number: pullNumber
+            });
+
+            if (context.payload.comment?.id) {
+              try {
+                await github.rest.reactions.createForIssueComment({
+                  owner,
+                  repo,
+                  comment_id: context.payload.comment.id,
+                  content: "eyes"
+                });
+              } catch (error) {
+                core.warning(`failed to add reaction: ${error instanceof Error ? error.message : String(error)}`);
+              }
+            }
+
+            const check = await github.rest.checks.create({
+              owner,
+              repo,
+              name: "prepare",
+              head_sha: pr.data.head.sha,
+              status: "in_progress",
+              details_url: runUrl,
+              output: {
+                title: "PR agent prepare running",
+                summary: "The PR agent is analyzing this pull request and branch merging should stay blocked until this rerun finishes."
+              }
+            });
+
+            core.setOutput("check_id", String(check.data.id));
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -45,10 +92,10 @@ jobs:
       - name: Install OpenCode CLI
         run: npx flue install
       - name: Run prepare workflow
+        id: run_prepare
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pull_number }}
           PREPARE_BRANCH_PREFIX: agent/prepared
         run: |
           ARGS=$(jq -nc \
@@ -63,3 +110,43 @@ jobs:
           npx flue run .flue/workflows/pr-prepare.ts \
             --args "$ARGS" \
             --model "$OPENCODE_MODEL"
+      - name: Finalize prepare check
+        if: always() && github.event_name != 'pull_request' && steps.prepare_check_start.outputs.check_id != ''
+        uses: actions/github-script@v7
+        env:
+          CHECK_ID: ${{ steps.prepare_check_start.outputs.check_id }}
+          RUN_OUTCOME: ${{ steps.run_prepare.outcome }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const checkRunId = Number(process.env.CHECK_ID);
+            const outcome = process.env.RUN_OUTCOME;
+
+            let conclusion = "success";
+            let title = "PR agent prepare passed";
+            let summary = "The rerun finished successfully.";
+
+            if (outcome === "failure") {
+              conclusion = "failure";
+              title = "PR agent prepare failed";
+              summary = "The rerun failed. Branch merging should remain blocked until prepare passes again.";
+            } else if (outcome === "cancelled") {
+              conclusion = "cancelled";
+              title = "PR agent prepare cancelled";
+              summary = "The rerun was cancelled before completion.";
+            }
+
+            await github.rest.checks.update({
+              owner,
+              repo,
+              check_run_id: checkRunId,
+              status: "completed",
+              conclusion,
+              completed_at: new Date().toISOString(),
+              output: {
+                title,
+                summary
+              }
+            });
