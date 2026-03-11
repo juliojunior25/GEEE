@@ -33,7 +33,6 @@ jobs:
       REPO: ${{ github.event.repository.name }}
       ACTOR: ${{ github.actor }}
       COMMENT_BODY: ${{ github.event.comment.body || inputs.comment_body }}
-      FLUE_USE_SANDBOX: ${{ vars.FLUE_USE_SANDBOX || 'false' }}
       OPENCODE_MODEL: ${{ vars.OPENCODE_MODEL || 'opencode/minimax-m2.5-free' }}
     steps:
       - uses: actions/checkout@v4
@@ -44,38 +43,13 @@ jobs:
           node-version: 22
       - run: npm install
       - name: Install OpenCode CLI
-        if: env.FLUE_USE_SANDBOX != 'true'
         run: npx flue install
-      - name: Restore OpenCode auth
-        if: env.FLUE_USE_SANDBOX != 'true' && secrets.OPENCODE_AUTH_JSON != ''
-        env:
-          OPENCODE_AUTH_JSON: ${{ secrets.OPENCODE_AUTH_JSON }}
-        run: |
-          mkdir -p "$HOME/.local/share/opencode"
-          printf '%s' "$OPENCODE_AUTH_JSON" > "$HOME/.local/share/opencode/auth.json"
-      - name: Log in to GHCR
-        if: env.FLUE_USE_SANDBOX == 'true'
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Pull sandbox image
-        if: env.FLUE_USE_SANDBOX == 'true'
-        run: docker pull "ghcr.io/${GITHUB_REPOSITORY,,}/flue-sandbox:latest"
       - name: Run publish workflow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
-          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           PR_NUMBER: ${{ github.event.issue.number || inputs.pull_number }}
         run: |
-          EXTRA_ARGS=""
-          if [ "$FLUE_USE_SANDBOX" = "true" ]; then
-            EXTRA_ARGS="--sandbox ghcr.io/${GITHUB_REPOSITORY,,}/flue-sandbox:latest"
-          fi
           ARGS=$(jq -nc \
             --arg owner "$OWNER" \
             --arg repo "$REPO" \
@@ -84,6 +58,5 @@ jobs:
             --argjson pullNumber "$PR_NUMBER" \
             '{owner:$owner,repo:$repo,pullNumber:$pullNumber,actor:$actor,commentBody:$commentBody}')
           npx flue run .flue/workflows/pr-publish.ts \
-            $EXTRA_ARGS \
             --args "$ARGS" \
             --model "$OPENCODE_MODEL"
