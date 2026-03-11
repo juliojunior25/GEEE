@@ -42,6 +42,9 @@ jobs:
         with:
           node-version: 22
       - run: npm install
+      - name: Install OpenCode CLI
+        if: env.FLUE_USE_SANDBOX != 'true'
+        run: npx flue install
       - name: Log in to GHCR
         if: env.FLUE_USE_SANDBOX == 'true'
         uses: docker/login-action@v3
