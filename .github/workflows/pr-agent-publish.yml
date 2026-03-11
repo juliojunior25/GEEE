@@ -21,7 +21,7 @@ jobs:
       (github.event_name == 'issue_comment' &&
        github.event.issue.pull_request &&
        startsWith(github.event.comment.body, '/pr-agent publish'))
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.OPENCODE_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 45
     permissions:
       contents: write
@@ -34,6 +34,7 @@ jobs:
       ACTOR: ${{ github.actor }}
       COMMENT_BODY: ${{ github.event.comment.body || inputs.comment_body }}
       FLUE_USE_SANDBOX: ${{ vars.FLUE_USE_SANDBOX || 'false' }}
+      OPENCODE_MODEL: ${{ vars.OPENCODE_MODEL || 'opencode/minimax-m2.5-free' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -45,6 +46,13 @@ jobs:
       - name: Install OpenCode CLI
         if: env.FLUE_USE_SANDBOX != 'true'
         run: npx flue install
+      - name: Restore OpenCode auth
+        if: env.FLUE_USE_SANDBOX != 'true' && secrets.OPENCODE_AUTH_JSON != ''
+        env:
+          OPENCODE_AUTH_JSON: ${{ secrets.OPENCODE_AUTH_JSON }}
+        run: |
+          mkdir -p "$HOME/.local/share/opencode"
+          printf '%s' "$OPENCODE_AUTH_JSON" > "$HOME/.local/share/opencode/auth.json"
       - name: Log in to GHCR
         if: env.FLUE_USE_SANDBOX == 'true'
         uses: docker/login-action@v3
@@ -58,9 +66,11 @@ jobs:
       - name: Run publish workflow
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
           PR_NUMBER: ${{ github.event.issue.number || inputs.pull_number }}
-          OPENCODE_MODEL: opencode/minimax-m2.5-free
         run: |
           EXTRA_ARGS=""
           if [ "$FLUE_USE_SANDBOX" = "true" ]; then

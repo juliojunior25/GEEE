@@ -29,7 +29,13 @@ Se o agente preparar uma mudança pequena e segura, ele vai comentar um branch p
 /pr-agent publish branch=agent/prepared/pr-12-abcdef1 sha=abcdef123456
 ```
 
-Para habilitar no GitHub, configure o secret `OPENCODE_API_KEY`.
+Para habilitar no GitHub, voce pode usar um destes modos:
+
+- `GitHub-hosted + OpenCode Zen/free`: configure o secret `OPENCODE_API_KEY`.
+- `GitHub-hosted + mesmas credenciais do seu OpenCode local`: copie `~/.local/share/opencode/auth.json` para o secret `OPENCODE_AUTH_JSON`.
+- `Self-hosted runner + mesmo ambiente local`: configure a variable `OPENCODE_RUNNER=self-hosted` e rode o workflow na maquina onde o `opencode` ja funciona.
+
+Se estiver usando um provider remoto fora do Zen, o workflow tambem repassa `OPENROUTER_API_KEY` e `MINIMAX_API_KEY`, se esses secrets existirem.
 
 ### Pré-requisitos
 
