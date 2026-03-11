@@ -43,6 +43,31 @@ export default async function prepare(flue: FlueClient, args: Args) {
   await flue.shell(`git fetch origin ${shellQuote(pr.baseRefName)}`);
   const diff = await flue.shell(`git diff --stat origin/${pr.baseRefName}...HEAD`);
 
+  const validation = await flue.shell("go test ./...", { timeout: 30 * 60 * 1000 });
+  if (validation.exitCode !== 0) {
+    await postComment(
+      flue,
+      repository,
+      args.pullNumber,
+      [
+        "## PR agent prepare",
+        "",
+        "Blocking issue detected before any follow-up change was prepared.",
+        "",
+        "Validation command:",
+        "",
+        "`go test ./...`",
+        "",
+        "Output excerpt:",
+        "",
+        "```text",
+        summarizeValidationOutput(validation.stdout, validation.stderr),
+        "```"
+      ].join("\n")
+    );
+    throw new Error("blocking validation failed");
+  }
+
   const result = await flue.skill(".flue/skills/pr-prepare.md", {
     args: {
       trigger: args.trigger,
@@ -111,4 +136,11 @@ async function configureGit(flue: FlueClient) {
 
 async function postComment(flue: FlueClient, repository: string, pullNumber: number, body: string) {
   await flue.shell(`gh pr comment ${pullNumber} --repo ${shellQuote(repository)} --body-file -`, { stdin: body });
+}
+
+function summarizeValidationOutput(stdout: string, stderr: string): string {
+  const merged = [stdout.trim(), stderr.trim()].filter(Boolean).join("\n");
+  const lines = merged.split("\n").filter(Boolean);
+  const excerpt = lines.slice(-30).join("\n").trim();
+  return excerpt.length > 0 ? excerpt : "Validation failed without stdout/stderr output.";
 }
