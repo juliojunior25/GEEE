@@ -44,7 +44,7 @@ Quando alguem comenta `/pr-agent prepare`, o workflow agora:
 - mantem o merge bloqueado enquanto esse rerun estiver em andamento
 - marca esse check como `success` ou `failure` no final
 
-Antes de tentar preparar mudancas, o workflow tambem roda `go test ./...`. Se essa validacao falhar, ele comenta a falha na PR e encerra o check `prepare` como erro bloqueante.
+Antes de tentar preparar mudancas, o workflow tambem roda `go test ./...`. Se essa validacao falhar, ele comenta a falha na PR, inclui uma sugestao objetiva de correcao baseada no erro encontrado e encerra o check `prepare` como erro bloqueante.
 
 ### Pré-requisitos
 
